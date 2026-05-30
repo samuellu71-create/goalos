@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { computeReadiness } from "@/lib/goals/readiness";
 import type {
   InsightsOutput,
   HeadlineStats,
@@ -19,17 +20,7 @@ interface PrereqLite {
   confidenceScore: number;
 }
 
-// Readiness score for a goal, matching the reasoning engine's formula:
-// 60% prerequisite completion ratio + 40% average confidence. Goals with no
-// prerequisites default to 50 (unknown readiness).
-function goalReadiness(prereqs: PrereqLite[]): number {
-  if (prereqs.length === 0) return 50;
-  const completed = prereqs.filter((p) => p.status === "COMPLETED").length;
-  const completionRatio = completed / prereqs.length;
-  const avgConfidence =
-    prereqs.reduce((sum, p) => sum + p.confidenceScore, 0) / prereqs.length;
-  return Math.round(completionRatio * 60 + (avgConfidence / 100) * 40);
-}
+const goalReadiness = computeReadiness;
 
 const ACTIVE_LIKE = new Set(["ACTIVE", "BLOCKED", "WAITING"]);
 const STALE_GOAL_DAYS = 21;
