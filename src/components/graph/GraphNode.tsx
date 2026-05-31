@@ -18,7 +18,7 @@ export function GraphNode({ data }: NodeProps) {
 
   return (
     <div
-      className={`rounded-lg border-2 bg-white px-3 py-2 shadow-sm min-w-[120px] max-w-[200px] cursor-pointer transition-shadow hover:shadow-md hover:ring-1 hover:ring-zinc-300 ${isSummary ? "border-dashed opacity-70" : ""}`}
+      className={`rounded-lg border-2 bg-white px-3 py-2 shadow-sm min-w-[120px] max-w-[200px] cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md hover:ring-1 hover:ring-zinc-300 ${isSummary ? "border-dashed opacity-70" : ""}`}
       style={{ borderColor: nodeData.color }}
     >
       <Handle type="target" position={Position.Left} className="!bg-zinc-400" />

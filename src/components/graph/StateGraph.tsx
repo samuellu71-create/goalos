@@ -60,6 +60,27 @@ const STAKEHOLDER_ROW_H = 90;
 const STAKEHOLDER_COMPACT_THRESHOLD = 6;
 
 const VIEWPORT_STORAGE_KEY = "goalos-graph-viewport";
+const NODE_POSITIONS_STORAGE_KEY = "goalos-graph-node-positions";
+
+type NodePositions = Record<string, { x: number; y: number }>;
+
+function saveNodePositions(positions: NodePositions) {
+  try {
+    sessionStorage.setItem(NODE_POSITIONS_STORAGE_KEY, JSON.stringify(positions));
+  } catch {
+    // sessionStorage unavailable
+  }
+}
+
+function loadNodePositions(): NodePositions {
+  try {
+    const raw = sessionStorage.getItem(NODE_POSITIONS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as NodePositions;
+  } catch {
+    // ignore
+  }
+  return {};
+}
 
 function saveViewport(viewport: Viewport) {
   try {
@@ -100,6 +121,8 @@ export function StateGraph() {
   const [showAllStakeholders, setShowAllStakeholders] = useState(false);
   const [editNode, setEditNode] = useState<{ id: string; type: string } | null>(null);
   const hasRestoredViewport = useRef(false);
+  const [nodePositions, setNodePositions] = useState<NodePositions>({});
+  const hasCustomLayout = Object.keys(nodePositions).length > 0;
 
   const handleInit = useCallback((instance: ReactFlowInstance) => {
     const saved = loadViewport();
@@ -128,6 +151,7 @@ export function StateGraph() {
         setGoals(g);
         setStakeholders(s);
         setRelationships(r);
+        setNodePositions(loadNodePositions());
         setLoading(false);
       }
     }
@@ -306,8 +330,12 @@ export function StateGraph() {
       }
     }
 
-    return { initialNodes: nodes, initialEdges: edges };
-  }, [goals, stakeholders, relationships, showAllStakeholders]);
+    const positionedNodes = nodes.map((n) =>
+      nodePositions[n.id] ? { ...n, position: nodePositions[n.id] } : n
+    );
+
+    return { initialNodes: positionedNodes, initialEdges: edges };
+  }, [goals, stakeholders, relationships, showAllStakeholders, nodePositions]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edgesState, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -330,6 +358,23 @@ export function StateGraph() {
     },
     []
   );
+
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
+      const next = { ...nodePositions };
+      for (const n of draggedNodes) {
+        next[n.id] = { x: n.position.x, y: n.position.y };
+      }
+      setNodePositions(next);
+      saveNodePositions(next);
+    },
+    [nodePositions]
+  );
+
+  const handleResetLayout = useCallback(() => {
+    saveNodePositions({});
+    setNodePositions({});
+  }, []);
 
   const reloadData = useCallback(async () => {
     const [goalsRes, stakeholdersRes, relsRes] = await Promise.all([
@@ -378,6 +423,7 @@ export function StateGraph() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
+        onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         onInit={handleInit}
         minZoom={0.2}
@@ -389,16 +435,26 @@ export function StateGraph() {
         <ViewportPersistence />
       </ReactFlow>
 
-      {stakeholders.length > STAKEHOLDER_COMPACT_THRESHOLD && (
-        <button
-          onClick={() => setShowAllStakeholders((v) => !v)}
-          className="absolute top-4 right-4 z-10 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm border border-zinc-200 hover:bg-zinc-50"
-        >
-          {showAllStakeholders
-            ? "Hide unlinked stakeholders"
-            : `Show all ${stakeholders.length} stakeholders`}
-        </button>
-      )}
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
+        {hasCustomLayout && (
+          <button
+            onClick={handleResetLayout}
+            className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm border border-zinc-200 hover:bg-zinc-50"
+          >
+            Reset layout
+          </button>
+        )}
+        {stakeholders.length > STAKEHOLDER_COMPACT_THRESHOLD && (
+          <button
+            onClick={() => setShowAllStakeholders((v) => !v)}
+            className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm border border-zinc-200 hover:bg-zinc-50"
+          >
+            {showAllStakeholders
+              ? "Hide unlinked stakeholders"
+              : `Show all ${stakeholders.length} stakeholders`}
+          </button>
+        )}
+      </div>
 
       {editNode && (
         <NodeEditModal
