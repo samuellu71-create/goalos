@@ -32,7 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-zinc-50 font-sans">
         <Nav />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-28">{children}</main>
         <GoalPrompt />
       </body>
     </html>

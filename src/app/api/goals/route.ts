@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recordEvent } from "@/lib/events/store";
+import { computeReadiness } from "@/lib/goals/readiness";
 
 export async function GET() {
   const goals = await prisma.goal.findMany({
@@ -11,7 +12,11 @@ export async function GET() {
     },
     orderBy: { createdAt: "desc" },
   });
-  return NextResponse.json(goals);
+  const withReadiness = goals.map((goal) => ({
+    ...goal,
+    readiness: computeReadiness(goal.prerequisites),
+  }));
+  return NextResponse.json(withReadiness);
 }
 
 export async function POST(request: Request) {

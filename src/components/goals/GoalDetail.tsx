@@ -196,7 +196,7 @@ export function GoalDetail({ id }: { id: string }) {
           <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progress}%` }} />
         </div>
         <p className="mt-1.5 text-xs text-zinc-500">
-          {doneItems} of {totalItems} prerequisites &amp; actions complete
+          {`${doneItems} of ${totalItems} prerequisites & actions complete`}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {STATUSES.map((s) => (
